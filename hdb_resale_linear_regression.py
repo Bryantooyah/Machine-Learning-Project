@@ -79,13 +79,14 @@ print(num.corr()["resale_price"].sort_values(ascending=False))
 #   floor_area_sqm (0.56) is the strongest single predictor -> keep
 #   year           (0.41) prices drift upward over time     -> keep
 #   storey         (0.34) higher floors cost more           -> keep
-#   lease_left     (0.30) / flat_age (-0.30) are the same thing (corr -1.00) -> keep only lease_left
-#   lease_commence_date is 0.98 correlated with lease_left  -> drop, it is redundant
+#   lease_commence_date (0.38), lease_left (0.30) and flat_age (-0.30) all describe
+#   the flat's age (corr 0.98 / -1.00 with each other) -> keep only the strongest,
+#   lease_commence_date, and drop the other two as redundant
 # The boxplots show town and flat_type separate the price ranges strongly,
 # so we keep them too and one-hot encode them.
 
 # Select features & spliting training and testing data
-num_features = ["floor_area_sqm", "year", "storey", "lease_left"]
+num_features = ["floor_area_sqm", "year", "storey", "lease_commence_date"]
 cat_features = ["town", "flat_type", "flat_model"]
 
 X = pd.get_dummies(df[num_features + cat_features], columns=cat_features, drop_first=True)
