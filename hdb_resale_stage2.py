@@ -7,6 +7,11 @@ import os
 import time
 import numpy as np
 import pandas as pd
+SHOW_PLOTS = False   # True: pop up every plot (the script pauses until you close each window)
+
+import matplotlib
+if not SHOW_PLOTS:
+    matplotlib.use("Agg")   # save plots to files only, no windows (avoids display backend errors)
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -26,7 +31,9 @@ os.makedirs(FIG_DIR, exist_ok=True)
 def save_and_show(name):
     plt.tight_layout()
     plt.savefig(os.path.join(FIG_DIR, name), dpi=150)
-    plt.show()
+    if SHOW_PLOTS:
+        plt.show()
+    plt.close()
 
 #data cleaning
 df = pd.read_csv("resale_flat_prices_2017_onwards.csv")
@@ -42,65 +49,65 @@ df = df.drop(columns=["block", "street_name", "month", "storey_range", "remainin
 df = df.dropna()
 print("After cleaning:", df.shape)
 
-#data visualisation
+#data visualisation (already done in stage 1, uncomment this whole block to redraw figures 1 to 6)
 
-print(df.head())
+# print(df.head())
 
-# Distribution of the target
-plt.figure(figsize=(8, 5))
-sns.histplot(df["resale_price"], bins=50, kde=True, color="skyblue")
-plt.title("Distribution of HDB Resale Price")
-plt.xlabel("Resale price (SGD)")
-plt.ylabel("Number of flats")
-save_and_show("fig1_price_distribution.png")
+# # Distribution of the target
+# plt.figure(figsize=(8, 5))
+# sns.histplot(df["resale_price"], bins=50, kde=True, color="skyblue")
+# plt.title("Distribution of HDB Resale Price")
+# plt.xlabel("Resale price (SGD)")
+# plt.ylabel("Number of flats")
+# save_and_show("fig1_price_distribution.png")
 
-# Floor area vs price
-plt.figure(figsize=(8, 5))
-plt.scatter(df["floor_area_sqm"], df["resale_price"], s=2, alpha=0.1)
-plt.title("Floor Area vs Resale Price")
-plt.xlabel("Floor area (sqm)")
-plt.ylabel("Resale price (SGD)")
-save_and_show("fig2_floor_area.png")
+# # Floor area vs price
+# plt.figure(figsize=(8, 5))
+# plt.scatter(df["floor_area_sqm"], df["resale_price"], s=2, alpha=0.1)
+# plt.title("Floor Area vs Resale Price")
+# plt.xlabel("Floor area (sqm)")
+# plt.ylabel("Resale price (SGD)")
+# save_and_show("fig2_floor_area.png")
 
-# Price by town, sorted by median so the trend is readable
-plt.figure(figsize=(12, 5))
-town_order = df.groupby("town")["resale_price"].median().sort_values().index
-sns.boxplot(x="town", y="resale_price", data=df, order=town_order)
-plt.title("Resale Price by Town")
-plt.xlabel("Town")
-plt.ylabel("Resale price (SGD)")
-plt.xticks(rotation=90)
-save_and_show("fig3_town.png")
+# # Price by town, sorted by median so the trend is readable
+# plt.figure(figsize=(12, 5))
+# town_order = df.groupby("town")["resale_price"].median().sort_values().index
+# sns.boxplot(x="town", y="resale_price", data=df, order=town_order)
+# plt.title("Resale Price by Town")
+# plt.xlabel("Town")
+# plt.ylabel("Resale price (SGD)")
+# plt.xticks(rotation=90)
+# save_and_show("fig3_town.png")
 
-# Price by flat type
-plt.figure(figsize=(8, 5))
-sns.boxplot(x="flat_type", y="resale_price", data=df, order=sorted(df["flat_type"].unique()))
-plt.title("Resale Price by Flat Type")
-plt.xlabel("Flat type")
-plt.ylabel("Resale price (SGD)")
-plt.xticks(rotation=45)
-save_and_show("fig4_flat_type.png")
+# # Price by flat type
+# plt.figure(figsize=(8, 5))
+# sns.boxplot(x="flat_type", y="resale_price", data=df, order=sorted(df["flat_type"].unique()))
+# plt.title("Resale Price by Flat Type")
+# plt.xlabel("Flat type")
+# plt.ylabel("Resale price (SGD)")
+# plt.xticks(rotation=45)
+# save_and_show("fig4_flat_type.png")
 
-# Price by flat model, sorted by median
-plt.figure(figsize=(12, 5))
-model_order = df.groupby("flat_model")["resale_price"].median().sort_values().index
-sns.boxplot(x="flat_model", y="resale_price", data=df, order=model_order)
-plt.title("Resale Price by Flat Model")
-plt.xlabel("Flat model")
-plt.ylabel("Resale price (SGD)")
-plt.xticks(rotation=90)
-save_and_show("fig5_flat_model.png")
+# # Price by flat model, sorted by median
+# plt.figure(figsize=(12, 5))
+# model_order = df.groupby("flat_model")["resale_price"].median().sort_values().index
+# sns.boxplot(x="flat_model", y="resale_price", data=df, order=model_order)
+# plt.title("Resale Price by Flat Model")
+# plt.xlabel("Flat model")
+# plt.ylabel("Resale price (SGD)")
+# plt.xticks(rotation=90)
+# save_and_show("fig5_flat_model.png")
 
-# Pearson correlation -> which features are worth using
-num = df.select_dtypes(include=np.number)
+# # Pearson correlation -> which features are worth using
+# num = df.select_dtypes(include=np.number)
 
-plt.figure(figsize=(8, 6))
-sns.heatmap(num.corr(method="pearson"), annot=True, cmap="coolwarm", linewidths=0.5)
-plt.title("Pearson Correlation Matrix")
-save_and_show("fig6_correlation.png")
+# plt.figure(figsize=(8, 6))
+# sns.heatmap(num.corr(method="pearson"), annot=True, cmap="coolwarm", linewidths=0.5)
+# plt.title("Pearson Correlation Matrix")
+# save_and_show("fig6_correlation.png")
 
-print("\nCorrelation with resale_price:")
-print(num.corr()["resale_price"].sort_values(ascending=False))
+# print("\nCorrelation with resale_price:")
+# print(num.corr()["resale_price"].sort_values(ascending=False))
 
 
 
@@ -232,12 +239,13 @@ for name in models:
     print(f"\n{name}: confusion matrix (price tiers, validation):")
     print(cm)
     print(f"{name}: tier accuracy = {np.diag(cm).sum() / cm.sum():.3f}")
-    plt.figure(figsize=(6, 5))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=labels, yticklabels=labels)
-    plt.title(f"{name}: Price Tier Confusion Matrix (validation set)")
-    plt.xlabel("Predicted tier")
-    plt.ylabel("Actual tier")
-    save_and_show(f"fig9_confusion_{name.split()[0].lower()}.png")
+    if name == "Random Forest":   # linear regression matrix was already made in stage 1
+        plt.figure(figsize=(6, 5))
+        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=labels, yticklabels=labels)
+        plt.title(f"{name}: Price Tier Confusion Matrix (validation set)")
+        plt.xlabel("Predicted tier")
+        plt.ylabel("Actual tier")
+        save_and_show("fig9_confusion_random.png")
 
 # calculating lower valuation MSE model
 val_mse = {name: comparison.loc[(name, "validation"), "MSE"] for name in models}
