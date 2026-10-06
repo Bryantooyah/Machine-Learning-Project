@@ -1,17 +1,12 @@
-"""Predicting HDB resale flat prices (Stage 2): Linear Regression vs Random Forest.
-
-Keep resale_flat_prices_2017_onwards.csv in the same folder as this script.
-"""
-
 import os
 import time
 import numpy as np
 import pandas as pd
-SHOW_PLOTS = False   # True: pop up every plot (the script pauses until you close each window)
+SHOW_PLOTS = False   
 
 import matplotlib
 if not SHOW_PLOTS:
-    matplotlib.use("Agg")   # save plots to files only, no windows (avoids display backend errors)
+    matplotlib.use("Agg")   
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -21,7 +16,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import (mean_squared_error, mean_absolute_error,
                              r2_score, confusion_matrix)
 
-# run from the script's own folder so the csv and the figures folder are found
+
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 FIG_DIR = "figures"                       # plots are saved here for the report
@@ -35,79 +30,81 @@ def save_and_show(name):
         plt.show()
     plt.close()
 
-#data cleaning
+# reading the data
 df = pd.read_csv("resale_flat_prices_2017_onwards.csv")
 print("Raw data:", df.shape)
 
+# renaming text column / data $ getting new column
 df["year"] = df["month"].str.slice(0, 4).astype(int)
 df["storey"] = df["storey_range"].str.extract(r"(\d+) TO (\d+)").astype(float).mean(axis=1)
 df["lease_left"] = (df["remaining_lease"].str.extract(r"(\d+)\s*year")[0].astype(float)
                     + df["remaining_lease"].str.extract(r"(\d+)\s*month")[0].astype(float).fillna(0) / 12)
 df["flat_age"] = df["year"] - df["lease_commence_date"]
 
+# drop irrelevant columns
 df = df.drop(columns=["block", "street_name", "month", "storey_range", "remaining_lease"])
 df = df.dropna()
 print("After cleaning:", df.shape)
 
-#data visualisation (already done in stage 1, uncomment this whole block to redraw figures 1 to 6)
 
-# print(df.head())
 
-# # Distribution of the target
-# plt.figure(figsize=(8, 5))
-# sns.histplot(df["resale_price"], bins=50, kde=True, color="skyblue")
-# plt.title("Distribution of HDB Resale Price")
-# plt.xlabel("Resale price (SGD)")
-# plt.ylabel("Number of flats")
-# save_and_show("fig1_price_distribution.png")
+print(df.head())
 
-# # Floor area vs price
-# plt.figure(figsize=(8, 5))
-# plt.scatter(df["floor_area_sqm"], df["resale_price"], s=2, alpha=0.1)
-# plt.title("Floor Area vs Resale Price")
-# plt.xlabel("Floor area (sqm)")
-# plt.ylabel("Resale price (SGD)")
-# save_and_show("fig2_floor_area.png")
+# Distribution of the target
+plt.figure(figsize=(8, 5))
+sns.histplot(df["resale_price"], bins=50, kde=True, color="skyblue")
+plt.title("Distribution of HDB Resale Price")
+plt.xlabel("Resale price (SGD)")
+plt.ylabel("Number of flats")
+save_and_show("fig1_price_distribution.png")
 
-# # Price by town, sorted by median so the trend is readable
-# plt.figure(figsize=(12, 5))
-# town_order = df.groupby("town")["resale_price"].median().sort_values().index
-# sns.boxplot(x="town", y="resale_price", data=df, order=town_order)
-# plt.title("Resale Price by Town")
-# plt.xlabel("Town")
-# plt.ylabel("Resale price (SGD)")
-# plt.xticks(rotation=90)
-# save_and_show("fig3_town.png")
+# Floor area vs price
+plt.figure(figsize=(8, 5))
+plt.scatter(df["floor_area_sqm"], df["resale_price"], s=2, alpha=0.1)
+plt.title("Floor Area vs Resale Price")
+plt.xlabel("Floor area (sqm)")
+plt.ylabel("Resale price (SGD)")
+save_and_show("fig2_floor_area.png")
 
-# # Price by flat type
-# plt.figure(figsize=(8, 5))
-# sns.boxplot(x="flat_type", y="resale_price", data=df, order=sorted(df["flat_type"].unique()))
-# plt.title("Resale Price by Flat Type")
-# plt.xlabel("Flat type")
-# plt.ylabel("Resale price (SGD)")
-# plt.xticks(rotation=45)
-# save_and_show("fig4_flat_type.png")
+# Price by town, sorted by median so the trend is readable
+plt.figure(figsize=(12, 5))
+town_order = df.groupby("town")["resale_price"].median().sort_values().index
+sns.boxplot(x="town", y="resale_price", data=df, order=town_order)
+plt.title("Resale Price by Town")
+plt.xlabel("Town")
+plt.ylabel("Resale price (SGD)")
+plt.xticks(rotation=90)
+save_and_show("fig3_town.png")
 
-# # Price by flat model, sorted by median
-# plt.figure(figsize=(12, 5))
-# model_order = df.groupby("flat_model")["resale_price"].median().sort_values().index
-# sns.boxplot(x="flat_model", y="resale_price", data=df, order=model_order)
-# plt.title("Resale Price by Flat Model")
-# plt.xlabel("Flat model")
-# plt.ylabel("Resale price (SGD)")
-# plt.xticks(rotation=90)
-# save_and_show("fig5_flat_model.png")
+# Price by flat type
+plt.figure(figsize=(8, 5))
+sns.boxplot(x="flat_type", y="resale_price", data=df, order=sorted(df["flat_type"].unique()))
+plt.title("Resale Price by Flat Type")
+plt.xlabel("Flat type")
+plt.ylabel("Resale price (SGD)")
+plt.xticks(rotation=45)
+save_and_show("fig4_flat_type.png")
 
-# # Pearson correlation -> which features are worth using
-# num = df.select_dtypes(include=np.number)
+# Price by flat model, sorted by median
+plt.figure(figsize=(12, 5))
+model_order = df.groupby("flat_model")["resale_price"].median().sort_values().index
+sns.boxplot(x="flat_model", y="resale_price", data=df, order=model_order)
+plt.title("Resale Price by Flat Model")
+plt.xlabel("Flat model")
+plt.ylabel("Resale price (SGD)")
+plt.xticks(rotation=90)
+save_and_show("fig5_flat_model.png")
 
-# plt.figure(figsize=(8, 6))
-# sns.heatmap(num.corr(method="pearson"), annot=True, cmap="coolwarm", linewidths=0.5)
-# plt.title("Pearson Correlation Matrix")
-# save_and_show("fig6_correlation.png")
+# Pearson correlation -> which features are worth using
+num = df.select_dtypes(include=np.number)
 
-# print("\nCorrelation with resale_price:")
-# print(num.corr()["resale_price"].sort_values(ascending=False))
+plt.figure(figsize=(8, 6))
+sns.heatmap(num.corr(method="pearson"), annot=True, cmap="coolwarm", linewidths=0.5)
+plt.title("Pearson Correlation Matrix")
+save_and_show("fig6_correlation.png")
+
+print("\nCorrelation with resale_price:")
+print(num.corr()["resale_price"].sort_values(ascending=False))
 
 
 
@@ -135,11 +132,11 @@ def evaluate(y_true, y_pred):
 # method 1 - linear regression
 
 t0 = time.time()
-lin = LinearRegression()
-lin.fit(X_train, y_train)
+model = LinearRegression()
+model.fit(X_train, y_train) # train on training set
 print(f"\nLinear regression trained in {time.time() - t0:.1f}s")
 
-coef = pd.Series(lin.coef_, index=X.columns)
+coef = pd.Series(model.coef_, index=X.columns)
 print("\nLinear regression numeric coefficients (SGD per unit):")
 print(coef[num_features].round(1))
 print("\nTop 10 linear regression coefficients (relative to dropped category):")
@@ -148,16 +145,16 @@ print(coef.sort_values(key=abs, ascending=False).head(10).round(0))
 
 # method 2 - random forest
 
-TUNE = False        # True: choose min_samples_leaf on the validation set (3 extra, smaller forests)
+TUNE = False        
 best_leaf = 5       # used when TUNE is False
 if TUNE:
     tune_mse = {}
     for leaf in [1, 5, 10]:
         m = RandomForestRegressor(n_estimators=50, min_samples_leaf=leaf,
-                                  n_jobs=-1, random_state=42).fit(X_train, y_train)
-        tune_mse[leaf] = mean_squared_error(y_val, m.predict(X_val))
+                                  n_jobs=-1, random_state=42).fit(X_train, y_train)   # 50 trees, smaller forest
+        tune_mse[leaf] = mean_squared_error(y_val, m.predict(X_val))   # comparing with validation set
         print(f"min_samples_leaf={leaf}: validation MSE = {tune_mse[leaf]:,.0f}")
-    best_leaf = min(tune_mse, key=tune_mse.get)
+    best_leaf = min(tune_mse, key=tune_mse.get) # best leaf - lowest validation mse
     print("Chosen min_samples_leaf:", best_leaf)
 
 t0 = time.time()
@@ -177,7 +174,7 @@ plt.xlabel("Importance")
 save_and_show("fig10_rf_feature_importance.png")
 
 # comparison table
-models = {"Linear Regression": lin, "Random Forest": rf}
+models = {"Linear Regression": model, "Random Forest": rf}
 preds = {name: {"train": m.predict(X_train), "val": m.predict(X_val)}
          for name, m in models.items()}
 
@@ -199,7 +196,7 @@ for name in models:
     mae_val = comparison.loc[(name, "validation"), "MAE"]
     print(f"{name}: validation MAE = {mae_val / mean_price:.1%} of mean price")
 
-# Predicted vs actual, side by side (figure 7a / 7b)
+# Predicted vs actual, put together
 lo, hi = y_val.min(), y_val.max()
 fig, axes = plt.subplots(1, 2, figsize=(11, 5), sharex=True, sharey=True)
 for ax, name in zip(axes, models):
