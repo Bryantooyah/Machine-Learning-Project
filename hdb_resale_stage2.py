@@ -225,7 +225,7 @@ for name in models:
     print(res.groupby(bands, observed=True).agg(["mean", "count"]).round(0))
 
 # price-tier confusion matrices on validation (same tiers as stage 1:
-#     terciles of the validation prices, about SGD 428,000 and 590,000)
+#   percentiles of the validation prices, about SGD 428,000 and 590,000)
 labels = ["Low", "Mid", "High"]
 actual_tier, edges = pd.qcut(y_val, 3, labels=labels, retbins=True)
 print("\nTier boundaries (SGD):", [round(e) for e in edges])
